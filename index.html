@@ -51,29 +51,26 @@
   }
 
   async function login() {
-    const login = document.getElementById("login").value.trim();
+    const email = document.getElementById("login").value.trim();
     const senha = document.getElementById("senha").value.trim();
-    if (!login || !senha) return alert("Preencha e-mail e senha");
+    if (!email || !senha) return alert("Preencha e-mail e senha");
+
     try {
-      // Autentica pelo Firebase Auth
-      const userCredential = await auth.signInWithEmailAndPassword(login, senha);
-      const user = userCredential.user;
-      // Busca dados extras no Firestore
-      const query = await db.collection("usuarios").where("login", "==", login).get();
-      if (!query.empty) {
-        localStorage.setItem("usuario", login);
-        localStorage.setItem("tipo", query.docs[0].data().tipo);
-        window.location.href = "agenda.html";
-      } else {
-        // Se não existir dados extras, permite login mesmo assim
-        localStorage.setItem("usuario", login);
-        localStorage.setItem("tipo", "usuario");
-        window.location.href = "agenda.html";
+      // Autentica no Firebase Auth
+      await auth.signInWithEmailAndPassword(email, senha);
+
+      // Busca dados extras do usuário no Firestore
+      const usuarios = await db.collection("usuarios").where("login", "==", email).get();
+      if (usuarios.empty) {
+        alert("Usuário não encontrado no banco.");
+        return;
       }
+      const userData = usuarios.docs[0].data();
+      localStorage.setItem("usuario", email);
+      localStorage.setItem("tipo", userData.tipo || "usuario");
+      window.location.href = "agenda.html";
     } catch (e) {
-      alert("Login ou senha incorretos.");
-      document.getElementById("login").value = "";
-      document.getElementById("senha").value = "";
+      alert("Erro ao fazer login: " + e.message);
     }
   }
 </script>

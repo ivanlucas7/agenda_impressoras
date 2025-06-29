@@ -51,6 +51,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/js-sha256@0.9.0/build/sha256.min.js"></script>
@@ -71,17 +72,16 @@
   };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
+  const auth = firebase.auth(); // Adicione esta linha
 
   let currentUser = usuario;
   let currentTipo = tipo;
   let calendar = null;
 
-  // Cores para cada sala
-  const salaCores = {
-    "Gabinete": "#007bff",
-    "Salão": "#28a745",
-    "Sala EBD": "#ffc107",
-    "Sala Crianças": "#dc3545"
+  // Cores para cada impressora
+  const impressoraCores = {
+    "Impressora 1 (esquerda)": "#007bff",
+    "Impressora 2 (direita)": "#28a745"
   };
 
   document.addEventListener("DOMContentLoaded", function() {
@@ -175,12 +175,12 @@
               const data = doc.data();
               return {
                 id: doc.id,
-                title: `${data.title} - ${data.user}`,
+                title: `${data.nome} - ${data.impressora} - ${data.user}`, // Exibe nome, impressora e usuário
                 start: data.start,
                 end: data.end,
                 user: data.user,
-                sala: data.sala,
-                color: salaCores[data.sala] || "#6c757d"
+                impressora: data.impressora,
+                color: impressoraCores[data.impressora] || "#6c757d" // Cor por impressora
               };
             });
             successCallback(eventos);
@@ -193,12 +193,12 @@
 
   function carregarTodosEventos() {
     const tabela = document.getElementById("tabela-eventos");
-    tabela.innerHTML = "<tr><th>Usuário</th><th>Título</th><th>Sala</th><th>Início</th><th>Fim</th><th>Ações</th></tr>";
+    tabela.innerHTML = "<tr><th>Usuário</th><th>Nome</th><th>Impressora</th><th>Início</th><th>Fim</th><th>Ações</th></tr>";
     db.collection("eventos").get().then(snapshot => {
       snapshot.forEach(doc => {
         const d = doc.data();
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${d.user}</td><td>${d.title}</td><td>${d.sala}</td><td>${d.start}</td><td>${d.end}</td>
+        tr.innerHTML = `<td>${d.user}</td><td>${d.nome}</td><td>${d.impressora}</td><td>${d.start}</td><td>${d.end}</td>
           <td>
             <button class="btn btn-danger btn-sm" onclick="excluirEventoAdmin('${doc.id}')">Excluir</button>
           </td>`;
@@ -247,7 +247,7 @@
         <div class="modal-content">
           <form id="formEvento">
             <div class="modal-header">
-              <h5 class="modal-title">Novo Evento</h5>
+              <h5 class="modal-title">Novo Agendamento</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -268,17 +268,15 @@
                 </select>
               </div>
               <div class="mb-2">
-                <label for="nomeEvento" class="form-label">Nome do evento:</label>
-                <input type="text" class="form-control" id="nomeEvento" required>
+                <label for="responsavelEvento" class="form-label">Nome do responsável:</label>
+                <input type="text" class="form-control" id="responsavelEvento" required>
               </div>
               <div class="mb-2">
-                <label for="salaEvento" class="form-label">Sala:</label>
-                <select class="form-select" id="salaEvento" required>
+                <label for="impressoraEvento" class="form-label">Impressora:</label>
+                <select class="form-select" id="impressoraEvento" required>
                   <option value="">Selecione...</option>
-                  <option value="Gabinete">Gabinete</option>
-                  <option value="Salão">Salão</option>
-                  <option value="Sala EBD">Sala EBD</option>
-                  <option value="Sala Crianças">Sala Crianças</option>
+                  <option value="Impressora 1 (esquerda)">Impressora 1 (esquerda)</option>
+                  <option value="Impressora 2 (direita)">Impressora 2 (direita)</option>
                 </select>
               </div>
             </div>
@@ -300,27 +298,46 @@
     const modalEl = document.getElementById('modalEvento');
     const modal = new bootstrap.Modal(modalEl);
     modalEl.addEventListener('shown.bs.modal', () => {
-      document.getElementById('nomeEvento').focus();
+      document.getElementById('responsavelEvento').focus();
     });
     modal.show();
 
-    document.getElementById('formEvento').onsubmit = function(e) {
+    document.getElementById('formEvento').onsubmit = async function(e) {
       e.preventDefault();
-      const nome = document.getElementById('nomeEvento').value.trim();
-      const sala = document.getElementById('salaEvento').value;
+      const responsavel = document.getElementById('responsavelEvento').value.trim();
+      const impressora = document.getElementById('impressoraEvento').value;
       const data = dataEvento.toISOString().slice(0,10);
       const horaInicio = document.getElementById('horaInicio').value;
       const horaFim = document.getElementById('horaFim').value;
-      if (!nome || !sala) return;
+      if (!responsavel || !impressora) return;
+
       // Monta datas completas no formato ISO
       const start = `${data}T${horaInicio}:00`;
       const end = `${data}T${horaFim}:00`;
+
+      // Verifica conflito de agendamento para a mesma impressora
+      const snapshot = await db.collection("eventos")
+        .where("impressora", "==", impressora)
+        .where("start", "<", end)
+        .get();
+
+      // Agora filtra em JS pelo outro campo (end > start)
+      const conflito = snapshot.docs.some(doc => {
+        const evento = doc.data();
+        return evento.end > start;
+      });
+
+      if (conflito) {
+        alert("Já existe um agendamento para esta impressora neste horário.");
+        return;
+      }
+
       onSave({
-        title: nome + " (" + sala + ")",
+        nome: responsavel,
         start: start,
         end: end,
         user: currentUser,
-        sala: sala
+        impressora: impressora
       });
       modal.hide();
       setTimeout(() => {
@@ -333,6 +350,13 @@
     const d = new Date(str);
     return d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
   }
+
+  auth.onAuthStateChanged(function(user) {
+    if (!user) {
+      // Não autenticado, redireciona para login
+      window.location.href = "index.html";
+    }
+  });
 </script>
 </body>
 </html>
