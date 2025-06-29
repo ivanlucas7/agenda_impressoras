@@ -17,7 +17,7 @@
       <div class="card shadow-sm mb-4">
         <div class="card-body">
           <h2 class="card-title text-center mb-4">Login</h2>
-          <input type="text" id="login" class="form-control mb-2" placeholder="Login">
+          <input type="text" id="login" class="form-control mb-2" placeholder="E-mail">
           <input type="password" id="senha" class="form-control mb-3" placeholder="Senha">
           <button onclick="login()" class="btn btn-success w-100 mb-2">Entrar</button>
           <a href="cadastro.html" class="btn btn-link w-100">Criar conta</a>
@@ -29,6 +29,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/js-sha256@0.9.0/build/sha256.min.js"></script>
 <script>
   const firebaseConfig = {
@@ -42,6 +43,7 @@
   };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
+  const auth = firebase.auth();
 
   async function hashSenha(senha) {
     // Compatível com todos os navegadores
@@ -51,18 +53,24 @@
   async function login() {
     const login = document.getElementById("login").value.trim();
     const senha = document.getElementById("senha").value.trim();
-    if (!login || !senha) return alert("Preencha login e senha");
-    const senhaHash = await hashSenha(senha);
-    const query = await db.collection("usuarios")
-      .where("login", "==", login)
-      .where("senha", "==", senhaHash)
-      .get();
-    if (!query.empty) {
-      // Salva usuário e tipo no localStorage para usar na agenda
-      localStorage.setItem("usuario", login);
-      localStorage.setItem("tipo", query.docs[0].data().tipo);
-      window.location.href = "agenda.html";
-    } else {
+    if (!login || !senha) return alert("Preencha e-mail e senha");
+    try {
+      // Autentica pelo Firebase Auth
+      const userCredential = await auth.signInWithEmailAndPassword(login, senha);
+      const user = userCredential.user;
+      // Busca dados extras no Firestore
+      const query = await db.collection("usuarios").where("login", "==", login).get();
+      if (!query.empty) {
+        localStorage.setItem("usuario", login);
+        localStorage.setItem("tipo", query.docs[0].data().tipo);
+        window.location.href = "agenda.html";
+      } else {
+        // Se não existir dados extras, permite login mesmo assim
+        localStorage.setItem("usuario", login);
+        localStorage.setItem("tipo", "usuario");
+        window.location.href = "agenda.html";
+      }
+    } catch (e) {
       alert("Login ou senha incorretos.");
       document.getElementById("login").value = "";
       document.getElementById("senha").value = "";
