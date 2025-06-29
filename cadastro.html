@@ -34,36 +34,41 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/js-sha256@0.9.0/build/sha256.min.js"></script>
 <script>
   const firebaseConfig = {
-    apiKey: "AIzaSyDmURHUiOooHU-PuTtXkMIYTWhiBk1Bk68",
-    authDomain: "agendaipa-aa0c9.firebaseapp.com",
-    projectId: "agendaipa-aa0c9",
-    storageBucket: "agendaipa-aa0c9.firebasestorage.app",
-    messagingSenderId: "737713561471",
-    appId: "1:737713561471:web:e021d9ae35ef3f4e81044a"
+    apiKey: "AIzaSyCCdRJmIkj7ESK58waFzZlTxAaU9Ahy99E",
+    authDomain: "agenda-impressoras.firebaseapp.com",
+    projectId: "agenda-impressoras",
+    storageBucket: "agenda-impressoras.firebasestorage.app",
+    messagingSenderId: "664896537152",
+    appId: "1:664896537152:web:76cb5e6fa3ec376a7f55a5",
+    measurementId: "G-YPXD9VPDFT"
   };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
+  // Usa a mesma função de hash do login (js-sha256)
   async function hashSenha(senha) {
-    const msgBuffer = new TextEncoder().encode(senha);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return sha256(senha);
   }
 
   async function cadastrarUsuario() {
-    const login = document.getElementById("new-login").value.trim();
-    const senha = document.getElementById("new-senha").value.trim();
-    const tipo = document.getElementById("new-tipo").value;
-    if (!login || !senha) return alert("Preencha login e senha");
-    const query = await db.collection("usuarios").where("login", "==", login).get();
-    if (!query.empty) return alert("Usuário já existe!");
-    const senhaHash = await hashSenha(senha);
-    await db.collection("usuarios").add({ login, senha: senhaHash, tipo });
-    alert("Usuário cadastrado com sucesso. Agora faça o login.");
-    window.location.href = "index.html";
+    try {
+      const login = document.getElementById("new-login").value.trim();
+      const senha = document.getElementById("new-senha").value.trim();
+      const tipo = document.getElementById("new-tipo").value;
+      if (!login || !senha) return alert("Preencha login e senha");
+      const query = await db.collection("usuarios").where("login", "==", login).get();
+      if (!query.empty) return alert("Usuário já existe!");
+      const senhaHash = await hashSenha(senha);
+      await db.collection("usuarios").add({ login, senha: senhaHash, tipo });
+      alert("Usuário cadastrado com sucesso. Agora faça o login.");
+      window.location.href = "index.html";
+    } catch (e) {
+      console.error('Erro ao cadastrar usuário:', e);
+      alert('Erro ao cadastrar usuário. Veja o console para detalhes.');
+    }
   }
 </script>
 
