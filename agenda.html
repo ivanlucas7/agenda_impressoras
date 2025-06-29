@@ -113,6 +113,16 @@
       editable: true,    // Permite arrastar/mover apenas eventos já cadastrados
       eventStartEditable: true,
       eventDurationEditable: true,
+      buttonText: {
+        today:    'Hoje',
+        month:    'Mês',
+        week:     'Semana',
+        day:      'Dia',
+        list:     'Lista'
+      },
+      allDayText: 'Dia inteiro',
+      moreLinkText: function(n) { return '+ mais ' + n; },
+      noEventsText: 'Nenhum evento para mostrar',
       // Ao clicar em um dia no mês ou semana, vai para o dia
       dateClick: function(info) {
         // Se estiver no dayview, abre o modal para o horário clicado
