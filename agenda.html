@@ -148,15 +148,43 @@
       },
       eventClick: function(info) {
         const evento = info.event;
+        // Permite editar apenas se for admin ou dono do evento
         if (currentTipo === "admin" || evento.extendedProps.user === currentUser) {
-          if (confirm("Deseja excluir este evento?")) {
-            if (evento.id) {
+          // Extrai dados do evento
+          const startDate = new Date(evento.start);
+          const endDate = new Date(evento.end);
+          // Função para atualizar o evento no Firestore
+          function modificarEvento(dadosAtualizados) {
+            db.collection("eventos").doc(evento.id).update({
+              nome: dadosAtualizados.nome,
+              start: dadosAtualizados.start,
+              end: dadosAtualizados.end,
+              impressora: dadosAtualizados.impressora
+            }).then(() => {
+              calendar.refetchEvents();
+              if (currentTipo === "admin") carregarTodosEventos();
+            });
+          }
+          // Função para excluir o evento
+          function excluirEvento() {
+            if (confirm("Deseja excluir este evento?")) {
               db.collection("eventos").doc(evento.id).delete().then(() => {
                 calendar.refetchEvents();
                 if (currentTipo === "admin") carregarTodosEventos();
               });
+              // Fecha o modal se estiver aberto
+              const modalEl = document.getElementById('modalEvento');
+              if (modalEl) {
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+              }
             }
           }
+          // Abre o modal preenchido para edição
+          abrirModalEvento(startDate, endDate, modificarEvento, {
+            nome: evento.title.split(' - ')[0],
+            impressora: evento.extendedProps.impressora
+          }, excluirEvento, true);
         } else {
           alert("Você só pode alterar eventos criados por você.");
         }
@@ -227,11 +255,10 @@
   }
 
   // Modal customizado para criar evento com seleção de horário
-  function abrirModalEvento(startDate, endDate, onSave) {
+  function abrirModalEvento(startDate, endDate, onSave, dadosIniciais = {}, onDelete = null, modoEdicao = false) {
     const oldModal = document.getElementById('modalEvento');
     if (oldModal) oldModal.remove();
 
-    // Gera opções de horário a cada 30min
     function gerarOpcoesHorario() {
       let opcoes = '';
       for (let h = 7; h <= 22; h++) {
@@ -243,12 +270,10 @@
       return opcoes;
     }
 
-    // Extrai hora:minuto do Date
     function extrairHoraMinuto(dateObj) {
       return dateObj.toTimeString().slice(0,5);
     }
 
-    // Data do evento
     const dataEvento = startDate instanceof Date ? startDate : new Date(startDate);
 
     const modalHtml = `
@@ -257,7 +282,7 @@
         <div class="modal-content">
           <form id="formEvento">
             <div class="modal-header">
-              <h5 class="modal-title">Novo Agendamento</h5>
+              <h5 class="modal-title">${modoEdicao ? 'Editar Agendamento' : 'Novo Agendamento'}</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -291,7 +316,8 @@
               </div>
             </div>
             <div class="modal-footer">
-              <button type="submit" class="btn btn-success">Salvar</button>
+              ${modoEdicao && onDelete ? `<button type="button" class="btn btn-danger me-auto" id="btnExcluirEvento">Excluir</button>` : ''}
+              <button type="submit" class="btn btn-success">${modoEdicao ? 'Modificar' : 'Salvar'}</button>
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
             </div>
           </form>
@@ -301,9 +327,11 @@
     `;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-    // Seleciona o horário mais próximo do clique
+    // Preenche campos com dados iniciais se fornecidos
     document.getElementById('horaInicio').value = extrairHoraMinuto(startDate);
     document.getElementById('horaFim').value = extrairHoraMinuto(endDate);
+    if (dadosIniciais.nome) document.getElementById('responsavelEvento').value = dadosIniciais.nome;
+    if (dadosIniciais.impressora) document.getElementById('impressoraEvento').value = dadosIniciais.impressora;
 
     const modalEl = document.getElementById('modalEvento');
     const modal = new bootstrap.Modal(modalEl);
@@ -321,25 +349,25 @@
       const horaFim = document.getElementById('horaFim').value;
       if (!responsavel || !impressora) return;
 
-      // Monta datas completas no formato ISO
       const start = `${data}T${horaInicio}:00`;
       const end = `${data}T${horaFim}:00`;
 
-      // Verifica conflito de agendamento para a mesma impressora
-      const snapshot = await db.collection("eventos")
-        .where("impressora", "==", impressora)
-        .where("start", "<", end)
-        .get();
+      // Verifica conflito de agendamento para a mesma impressora (apenas no cadastro, não na edição)
+      if (!modoEdicao) {
+        const snapshot = await db.collection("eventos")
+          .where("impressora", "==", impressora)
+          .where("start", "<", end)
+          .get();
 
-      // Agora filtra em JS pelo outro campo (end > start)
-      const conflito = snapshot.docs.some(doc => {
-        const evento = doc.data();
-        return evento.end > start;
-      });
+        const conflito = snapshot.docs.some(doc => {
+          const evento = doc.data();
+          return evento.end > start;
+        });
 
-      if (conflito) {
-        alert("Já existe um agendamento para esta impressora neste horário.");
-        return;
+        if (conflito) {
+          alert("Já existe um agendamento para esta impressora neste horário.");
+          return;
+        }
       }
 
       onSave({
@@ -354,6 +382,17 @@
         document.getElementById('modalEvento').remove();
       }, 500);
     };
+
+    // Botão de excluir (apenas modo edição)
+    if (modoEdicao && onDelete) {
+      document.getElementById('btnExcluirEvento').onclick = function() {
+        onDelete();
+        modal.hide();
+        setTimeout(() => {
+          document.getElementById('modalEvento').remove();
+        }, 500);
+      };
+    }
   }
 
   function formatarHorario(str) {
