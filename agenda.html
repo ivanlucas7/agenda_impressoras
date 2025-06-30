@@ -2,410 +2,463 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Agenda das Impresssoras IFSP</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agenda das Impressoras IFSP</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
   <style>
-    body { font-family: Arial; }
-    #calendar { max-width: 900px; margin: 40px auto; }
-    @media (max-width: 576px) {
-      #calendar { 
-        max-width: 100vw; 
-        margin: 0; 
-        min-height: 80vh;   /* aumenta a altura mínima no mobile */
-        height: 80vh !important; /* força altura maior no mobile */
+    body {
+      font-family: Arial, sans-serif;
+      background: #f8f9fa;
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .app-header {
+      background: #198754;
+      color: #fff;
+      padding: 1rem 0;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      letter-spacing: 1px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .app-footer {
+      background: #fff;
+      color: #888;
+      text-align: center;
+      padding: 0.7rem 0;
+      font-size: 0.95rem;
+      border-top: 1px solid #eee;
+      margin-top: auto;
+    }
+    .card {
+      border-radius: 1.2rem;
+    }
+    .container {
+      margin-top: 2vh;
+      margin-bottom: 2vh;
+      max-width: 900px;
+    }
+    #calendar {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 1.2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      padding: 1rem;
+    }
+    @media (max-width: 600px) {
+      .container {
+        margin-top: 2vh;
+        margin-bottom: 2vh;
+        max-width: 98vw;
+        padding: 0 0.5rem;
+      }
+      .app-header {
+        font-size: 1.15rem;
+        padding: 0.7rem 0;
+      }
+      #calendar {
+        max-width: 100vw;
+        margin: 0;
+        min-height: 80vh;
+        height: 80vh !important;
+        padding: 0.2rem;
       }
       .fc { font-size: 0.85rem; }
       .fc-timegrid-slot-label, .fc-col-header-cell { font-size: 0.8rem; }
       .fc-toolbar-title { font-size: 1rem; }
       .fc-scrollgrid-sync-table { min-width: 600px; }
-      .container { padding: 0 !important; }
     }
   </style>
 </head>
-<body class="bg-light">
+<body>
+  <div class="app-header">Agenda das Impressoras</div>
+  <div class="container">
+    <div id="logout-area" class="text-end my-3" style="display:none;">
+      <button onclick="logout()" class="btn btn-outline-danger">Sair</button>
+    </div>
 
-<div class="container">
-  <div id="logout-area" class="text-end my-3" style="display:none;">
-    <button onclick="logout()" class="btn btn-outline-danger">Sair</button>
-  </div>
+    <div id="calendar"></div>
 
-  <div id="calendar"></div>
-
-  <div id="admin-area" style="display:none">
-    <div class="row justify-content-center">
-      <div class="col-12">
-        <div class="card shadow-sm mb-4">
-          <div class="card-body">
-            <h2 class="card-title text-center mb-4">Admin - Todos os eventos</h2>
-            <div class="table-responsive">
-              <table id="tabela-eventos" class="table table-bordered table-striped"></table>
+    <div id="admin-area" style="display:none">
+      <div class="row justify-content-center">
+        <div class="col-12">
+          <div class="card shadow-sm mb-4">
+            <div class="card-body">
+              <h2 class="card-title text-center mb-4">Admin - Todos os eventos</h2>
+              <div class="table-responsive">
+                <table id="tabela-eventos" class="table table-bordered table-striped"></table>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
   </div>
-</div>
+  <div class="app-footer">© 2025 Agenda Impressoras</div>
 
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/js-sha256@0.9.0/build/sha256.min.js"></script>
-<script>
-  // Autenticação simple
-  const usuario = localStorage.getItem("usuario");
-  const tipo = localStorage.getItem("tipo");
-  if (!usuario) window.location.href = "index.html";
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/js-sha256@0.9.0/build/sha256.min.js"></script>
+  <script>
+    // Autenticação simple
+    const usuario = localStorage.getItem("usuario");
+    const tipo = localStorage.getItem("tipo");
+    if (!usuario) window.location.href = "index.html";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyCCdRJmIkj7ESK58waFzZlTxAaU9Ahy99E",
-    authDomain: "agenda-impressoras.firebaseapp.com",
-    projectId: "agenda-impressoras",
-    storageBucket: "agenda-impressoras.firebasestorage.app",
-    messagingSenderId: "664896537152",
-    appId: "1:664896537152:web:76cb5e6fa3ec376a7f55a5",
-    measurementId: "G-YPXD9VPDFT"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-  const auth = firebase.auth(); // Adicione esta linha
+    const firebaseConfig = {
+      apiKey: "AIzaSyCCdRJmIkj7ESK58waFzZlTxAaU9Ahy99E",
+      authDomain: "agenda-impressoras.firebaseapp.com",
+      projectId: "agenda-impressoras",
+      storageBucket: "agenda-impressoras.firebasestorage.app",
+      messagingSenderId: "664896537152",
+      appId: "1:664896537152:web:76cb5e6fa3ec376a7f55a5",
+      measurementId: "G-YPXD9VPDFT"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth(); // Adicione esta linha
 
-  let currentUser = usuario;
-  let currentTipo = tipo;
-  let calendar = null;
+    let currentUser = usuario;
+    let currentTipo = tipo;
+    let calendar = null;
 
-  // Cores para cada impressora
-  const impressoraCores = {
-    "Impressora 1 (esquerda)": "#007bff",
-    "Impressora 2 (direita)": "#28a745"
-  };
-
-  document.addEventListener("DOMContentLoaded", function() {
-    document.getElementById("logout-area").style.display = "block";
-    if (currentTipo === "admin") document.getElementById("admin-area").style.display = "block";
-    initCalendar();
-    if (currentTipo === "admin") carregarTodosEventos();
-  });
-
-  function logout() {
-    localStorage.removeItem("usuario");
-    localStorage.removeItem("tipo");
-    window.location.href = "index.html";
-  }
-
-  function initCalendar() {
-    const calendarEl = document.getElementById('calendar');
-    if (calendar) calendar.destroy();
-    let initialView = window.innerWidth < 576 ? 'timeGridDay' : 'timeGridWeek';
-    calendar = new FullCalendar.Calendar(calendarEl, {
-      initialView: initialView,
-      locale: 'pt-br',
-      headerToolbar: {
-        left: 'prev,next today',
-        center: 'title',
-        right: 'dayGridMonth,timeGridWeek,timeGridDay'
-      },
-      selectable: false, // Não permite selecionar intervalo vazio arrastando
-      editable: true,    // Permite arrastar/mover apenas eventos já cadastrados
-      eventStartEditable: true,
-      eventDurationEditable: true,
-      buttonText: {
-        today:    'Hoje',
-        month:    'Mês',
-        week:     'Semana',
-        day:      'Dia',
-        list:     'Lista'
-      },
-      allDayText: 'Dia inteiro',
-      moreLinkText: function(n) { return '+ mais ' + n; },
-      noEventsText: 'Nenhum evento para mostrar',
-      // Ao clicar em um dia no mês ou semana, vai para o dia
-      dateClick: function(info) {
-        // Se estiver no dayview, abre o modal para o horário clicado
-        if (calendar.view.type === 'timeGridDay') {
-          // Define um intervalo padrão de 30 minutos
-          const start = info.date;
-          const end = new Date(start.getTime() + 30 * 60000);
-          abrirModalEvento(
-            start,
-            end,
-            function(evento) {
-              db.collection("eventos").add(evento).then(() => {
-                calendar.refetchEvents();
-                if (currentTipo === "admin") carregarTodosEventos();
-              });
-            }
-          );
-        }
-        // Se estiver no mês ou semana, muda para o dia
-        else if (calendar.view.type === 'dayGridMonth' || calendar.view.type === 'timeGridWeek') {
-          calendar.changeView('timeGridDay', info.dateStr);
-        }
-      },
-      eventClick: function(info) {
-        const evento = info.event;
-        // Permite editar apenas se for admin ou dono do evento
-        if (currentTipo === "admin" || evento.extendedProps.user === currentUser) {
-          // Extrai dados do evento
-          const startDate = new Date(evento.start);
-          const endDate = new Date(evento.end);
-          // Função para atualizar o evento no Firestore
-          function modificarEvento(dadosAtualizados) {
-            db.collection("eventos").doc(evento.id).update({
-              nome: dadosAtualizados.nome,
-              start: dadosAtualizados.start,
-              end: dadosAtualizados.end,
-              impressora: dadosAtualizados.impressora
-            }).then(() => {
-              calendar.refetchEvents();
-              if (currentTipo === "admin") carregarTodosEventos();
-            });
-          }
-          // Função para excluir o evento
-          function excluirEvento() {
-            if (confirm("Deseja excluir este evento?")) {
-              db.collection("eventos").doc(evento.id).delete().then(() => {
-                calendar.refetchEvents();
-                if (currentTipo === "admin") carregarTodosEventos();
-              });
-              // Fecha o modal se estiver aberto
-              const modalEl = document.getElementById('modalEvento');
-              if (modalEl) {
-                const modal = bootstrap.Modal.getInstance(modalEl);
-                if (modal) modal.hide();
-              }
-            }
-          }
-          // Abre o modal preenchido para edição
-          abrirModalEvento(startDate, endDate, modificarEvento, {
-            nome: evento.title.split(' - ')[0],
-            impressora: evento.extendedProps.impressora
-          }, excluirEvento, true);
-        } else {
-          alert("Você só pode alterar eventos criados por você.");
-        }
-      },
-      eventDrop: function(info) {
-        const evento = info.event;
-        if (currentTipo === "admin" || evento.extendedProps.user === currentUser) {
-          if (evento.id) {
-            db.collection("eventos").doc(evento.id).update({
-              start: evento.startStr,
-              end: evento.endStr
-            }).then(() => {
-              calendar.refetchEvents();
-              if (currentTipo === "admin") carregarTodosEventos();
-            });
-          }
-        } else {
-          alert("Você só pode mover eventos criados por você.");
-          info.revert();
-        }
-      },
-      events: function(fetchInfo, successCallback, failureCallback) {
-        db.collection("eventos").get()
-          .then(snapshot => {
-            const eventos = snapshot.docs.map(doc => {
-              const data = doc.data();
-              return {
-                id: doc.id,
-                title: `${data.nome} - ${data.impressora} - ${data.user}`, // Exibe nome, impressora e usuário
-                start: data.start,
-                end: data.end,
-                user: data.user,
-                impressora: data.impressora,
-                color: impressoraCores[data.impressora] || "#6c757d" // Cor por impressora
-              };
-            });
-            successCallback(eventos);
-          })
-          .catch(failureCallback);
-      }
-    });
-    calendar.render();
-  }
-
-  function carregarTodosEventos() {
-    const tabela = document.getElementById("tabela-eventos");
-    tabela.innerHTML = "<tr><th>Usuário</th><th>Nome</th><th>Impressora</th><th>Início</th><th>Fim</th><th>Ações</th></tr>";
-    db.collection("eventos").get().then(snapshot => {
-      snapshot.forEach(doc => {
-        const d = doc.data();
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${d.user}</td><td>${d.nome}</td><td>${d.impressora}</td><td>${d.start}</td><td>${d.end}</td>
-          <td>
-            <button class="btn btn-danger btn-sm" onclick="excluirEventoAdmin('${doc.id}')">Excluir</button>
-          </td>`;
-        tabela.appendChild(tr);
-      });
-    });
-  }
-
-  function excluirEventoAdmin(id) {
-    if (confirm("Deseja excluir este evento?")) {
-      db.collection("eventos").doc(id).delete().then(() => {
-        carregarTodosEventos();
-        calendar.refetchEvents();
-      });
-    }
-  }
-
-  // Modal customizado para criar evento com seleção de horário
-  function abrirModalEvento(startDate, endDate, onSave, dadosIniciais = {}, onDelete = null, modoEdicao = false) {
-    const oldModal = document.getElementById('modalEvento');
-    if (oldModal) oldModal.remove();
-
-    function gerarOpcoesHorario() {
-      let opcoes = '';
-      for (let h = 7; h <= 22; h++) {
-        for (let m = 0; m < 60; m += 30) {
-          const hora = `${h.toString().padStart(2, '0')}:${m === 0 ? '00' : '30'}`;
-          opcoes += `<option value="${hora}">${hora}</option>`;
-        }
-      }
-      return opcoes;
-    }
-
-    function extrairHoraMinuto(dateObj) {
-      return dateObj.toTimeString().slice(0,5);
-    }
-
-    const dataEvento = startDate instanceof Date ? startDate : new Date(startDate);
-
-    const modalHtml = `
-    <div class="modal fade" id="modalEvento" tabindex="-1">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <form id="formEvento">
-            <div class="modal-header">
-              <h5 class="modal-title">${modoEdicao ? 'Editar Agendamento' : 'Novo Agendamento'}</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-              <div class="mb-2">
-                <label class="form-label">Data:</label>
-                <div><strong>${dataEvento.toLocaleDateString('pt-BR')}</strong></div>
-              </div>
-              <div class="mb-2">
-                <label class="form-label">Horário de início:</label>
-                <select class="form-select" id="horaInicio" required>
-                  ${gerarOpcoesHorario()}
-                </select>
-              </div>
-              <div class="mb-2">
-                <label class="form-label">Horário de término:</label>
-                <select class="form-select" id="horaFim" required>
-                  ${gerarOpcoesHorario()}
-                </select>
-              </div>
-              <div class="mb-2">
-                <label for="responsavelEvento" class="form-label">Nome do responsável:</label>
-                <input type="text" class="form-control" id="responsavelEvento" required>
-              </div>
-              <div class="mb-2">
-                <label for="impressoraEvento" class="form-label">Impressora:</label>
-                <select class="form-select" id="impressoraEvento" required>
-                  <option value="">Selecione...</option>
-                  <option value="Impressora 1 (esquerda)">Impressora 1 (esquerda)</option>
-                  <option value="Impressora 2 (direita)">Impressora 2 (direita)</option>
-                </select>
-              </div>
-            </div>
-            <div class="modal-footer">
-              ${modoEdicao && onDelete ? `<button type="button" class="btn btn-danger me-auto" id="btnExcluirEvento">Excluir</button>` : ''}
-              <button type="submit" class="btn btn-success">${modoEdicao ? 'Modificar' : 'Salvar'}</button>
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-    // Preenche campos com dados iniciais se fornecidos
-    document.getElementById('horaInicio').value = extrairHoraMinuto(startDate);
-    document.getElementById('horaFim').value = extrairHoraMinuto(endDate);
-    if (dadosIniciais.nome) document.getElementById('responsavelEvento').value = dadosIniciais.nome;
-    if (dadosIniciais.impressora) document.getElementById('impressoraEvento').value = dadosIniciais.impressora;
-
-    const modalEl = document.getElementById('modalEvento');
-    const modal = new bootstrap.Modal(modalEl);
-    modalEl.addEventListener('shown.bs.modal', () => {
-      document.getElementById('responsavelEvento').focus();
-    });
-    modal.show();
-
-    document.getElementById('formEvento').onsubmit = async function(e) {
-      e.preventDefault();
-      const responsavel = document.getElementById('responsavelEvento').value.trim();
-      const impressora = document.getElementById('impressoraEvento').value;
-      const data = dataEvento.toISOString().slice(0,10);
-      const horaInicio = document.getElementById('horaInicio').value;
-      const horaFim = document.getElementById('horaFim').value;
-      if (!responsavel || !impressora) return;
-
-      const start = `${data}T${horaInicio}:00`;
-      const end = `${data}T${horaFim}:00`;
-
-      // Verifica conflito de agendamento para a mesma impressora (apenas no cadastro, não na edição)
-      if (!modoEdicao) {
-        const snapshot = await db.collection("eventos")
-          .where("impressora", "==", impressora)
-          .where("start", "<", end)
-          .get();
-
-        const conflito = snapshot.docs.some(doc => {
-          const evento = doc.data();
-          return evento.end > start;
-        });
-
-        if (conflito) {
-          alert("Já existe um agendamento para esta impressora neste horário.");
-          return;
-        }
-      }
-
-      onSave({
-        nome: responsavel,
-        start: start,
-        end: end,
-        user: currentUser,
-        impressora: impressora
-      });
-      modal.hide();
-      setTimeout(() => {
-        document.getElementById('modalEvento').remove();
-      }, 500);
+    // Cores para cada impressora
+    const impressoraCores = {
+      "Impressora 1 (esquerda)": "#007bff",
+      "Impressora 2 (direita)": "#28a745"
     };
 
-    // Botão de excluir (apenas modo edição)
-    if (modoEdicao && onDelete) {
-      document.getElementById('btnExcluirEvento').onclick = function() {
-        onDelete();
+    document.addEventListener("DOMContentLoaded", function() {
+      document.getElementById("logout-area").style.display = "block";
+      if (currentTipo === "admin") document.getElementById("admin-area").style.display = "block";
+      initCalendar();
+      if (currentTipo === "admin") carregarTodosEventos();
+    });
+
+    function logout() {
+      localStorage.removeItem("usuario");
+      localStorage.removeItem("tipo");
+      window.location.href = "index.html";
+    }
+
+    function initCalendar() {
+      const calendarEl = document.getElementById('calendar');
+      if (calendar) calendar.destroy();
+      let initialView = window.innerWidth < 576 ? 'timeGridDay' : 'timeGridWeek';
+      calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: initialView,
+        locale: 'pt-br',
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        selectable: false, // Não permite selecionar intervalo vazio arrastando
+        editable: true,    // Permite arrastar/mover apenas eventos já cadastrados
+        eventStartEditable: true,
+        eventDurationEditable: true,
+        buttonText: {
+          today:    'Hoje',
+          month:    'Mês',
+          week:     'Semana',
+          day:      'Dia',
+          list:     'Lista'
+        },
+        allDayText: 'Dia inteiro',
+        moreLinkText: function(n) { return '+ mais ' + n; },
+        noEventsText: 'Nenhum evento para mostrar',
+        // Ao clicar em um dia no mês ou semana, vai para o dia
+        dateClick: function(info) {
+          // Se estiver no dayview, abre o modal para o horário clicado
+          if (calendar.view.type === 'timeGridDay') {
+            // Define um intervalo padrão de 30 minutos
+            const start = info.date;
+            const end = new Date(start.getTime() + 30 * 60000);
+            abrirModalEvento(
+              start,
+              end,
+              function(evento) {
+                db.collection("eventos").add(evento).then(() => {
+                  calendar.refetchEvents();
+                  if (currentTipo === "admin") carregarTodosEventos();
+                });
+              }
+            );
+          }
+          // Se estiver no mês ou semana, muda para o dia
+          else if (calendar.view.type === 'dayGridMonth' || calendar.view.type === 'timeGridWeek') {
+            calendar.changeView('timeGridDay', info.dateStr);
+          }
+        },
+        eventClick: function(info) {
+          const evento = info.event;
+          // Permite editar apenas se for admin ou dono do evento
+          if (currentTipo === "admin" || evento.extendedProps.user === currentUser) {
+            // Extrai dados do evento
+            const startDate = new Date(evento.start);
+            const endDate = new Date(evento.end);
+            // Função para atualizar o evento no Firestore
+            function modificarEvento(dadosAtualizados) {
+              db.collection("eventos").doc(evento.id).update({
+                nome: dadosAtualizados.nome,
+                start: dadosAtualizados.start,
+                end: dadosAtualizados.end,
+                impressora: dadosAtualizados.impressora
+              }).then(() => {
+                calendar.refetchEvents();
+                if (currentTipo === "admin") carregarTodosEventos();
+              });
+            }
+            // Função para excluir o evento
+            function excluirEvento() {
+              if (confirm("Deseja excluir este evento?")) {
+                db.collection("eventos").doc(evento.id).delete().then(() => {
+                  calendar.refetchEvents();
+                  if (currentTipo === "admin") carregarTodosEventos();
+                });
+                // Fecha o modal se estiver aberto
+                const modalEl = document.getElementById('modalEvento');
+                if (modalEl) {
+                  const modal = bootstrap.Modal.getInstance(modalEl);
+                  if (modal) modal.hide();
+                }
+              }
+            }
+            // Abre o modal preenchido para edição
+            abrirModalEvento(startDate, endDate, modificarEvento, {
+              nome: evento.title.split(' - ')[0],
+              impressora: evento.extendedProps.impressora
+            }, excluirEvento, true);
+          } else {
+            alert("Você só pode alterar eventos criados por você.");
+          }
+        },
+        eventDrop: function(info) {
+          const evento = info.event;
+          if (currentTipo === "admin" || evento.extendedProps.user === currentUser) {
+            if (evento.id) {
+              db.collection("eventos").doc(evento.id).update({
+                start: evento.startStr,
+                end: evento.endStr
+              }).then(() => {
+                calendar.refetchEvents();
+                if (currentTipo === "admin") carregarTodosEventos();
+              });
+            }
+          } else {
+            alert("Você só pode mover eventos criados por você.");
+            info.revert();
+          }
+        },
+        events: function(fetchInfo, successCallback, failureCallback) {
+          db.collection("eventos").get()
+            .then(snapshot => {
+              const eventos = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                  id: doc.id,
+                  title: `${data.nome} - ${data.impressora} - ${data.user}`, // Exibe nome, impressora e usuário
+                  start: data.start,
+                  end: data.end,
+                  user: data.user,
+                  impressora: data.impressora,
+                  color: impressoraCores[data.impressora] || "#6c757d" // Cor por impressora
+                };
+              });
+              successCallback(eventos);
+            })
+            .catch(failureCallback);
+        }
+      });
+      calendar.render();
+    }
+
+    function carregarTodosEventos() {
+      const tabela = document.getElementById("tabela-eventos");
+      tabela.innerHTML = "<tr><th>Usuário</th><th>Nome</th><th>Impressora</th><th>Início</th><th>Fim</th><th>Ações</th></tr>";
+      db.collection("eventos").get().then(snapshot => {
+        snapshot.forEach(doc => {
+          const d = doc.data();
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td>${d.user}</td><td>${d.nome}</td><td>${d.impressora}</td><td>${d.start}</td><td>${d.end}</td>
+            <td>
+              <button class="btn btn-danger btn-sm" onclick="excluirEventoAdmin('${doc.id}')">Excluir</button>
+            </td>`;
+          tabela.appendChild(tr);
+        });
+      });
+    }
+
+    function excluirEventoAdmin(id) {
+      if (confirm("Deseja excluir este evento?")) {
+        db.collection("eventos").doc(id).delete().then(() => {
+          carregarTodosEventos();
+          calendar.refetchEvents();
+        });
+      }
+    }
+
+    // Modal customizado para criar evento com seleção de horário
+    function abrirModalEvento(startDate, endDate, onSave, dadosIniciais = {}, onDelete = null, modoEdicao = false) {
+      const oldModal = document.getElementById('modalEvento');
+      if (oldModal) oldModal.remove();
+
+      function gerarOpcoesHorario() {
+        let opcoes = '';
+        for (let h = 7; h <= 22; h++) {
+          for (let m = 0; m < 60; m += 30) {
+            const hora = `${h.toString().padStart(2, '0')}:${m === 0 ? '00' : '30'}`;
+            opcoes += `<option value="${hora}">${hora}</option>`;
+          }
+        }
+        return opcoes;
+      }
+
+      function extrairHoraMinuto(dateObj) {
+        return dateObj.toTimeString().slice(0,5);
+      }
+
+      const dataEvento = startDate instanceof Date ? startDate : new Date(startDate);
+
+      const modalHtml = `
+      <div class="modal fade" id="modalEvento" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <form id="formEvento">
+              <div class="modal-header">
+                <h5 class="modal-title">${modoEdicao ? 'Editar Agendamento' : 'Novo Agendamento'}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <div class="mb-2">
+                  <label class="form-label">Data:</label>
+                  <div><strong>${dataEvento.toLocaleDateString('pt-BR')}</strong></div>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label">Horário de início:</label>
+                  <select class="form-select" id="horaInicio" required>
+                    ${gerarOpcoesHorario()}
+                  </select>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label">Horário de término:</label>
+                  <select class="form-select" id="horaFim" required>
+                    ${gerarOpcoesHorario()}
+                  </select>
+                </div>
+                <div class="mb-2">
+                  <label for="responsavelEvento" class="form-label">Nome do responsável:</label>
+                  <input type="text" class="form-control" id="responsavelEvento" required>
+                </div>
+                <div class="mb-2">
+                  <label for="impressoraEvento" class="form-label">Impressora:</label>
+                  <select class="form-select" id="impressoraEvento" required>
+                    <option value="">Selecione...</option>
+                    <option value="Impressora 1 (esquerda)">Impressora 1 (esquerda)</option>
+                    <option value="Impressora 2 (direita)">Impressora 2 (direita)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="modal-footer">
+                ${modoEdicao && onDelete ? `<button type="button" class="btn btn-danger me-auto" id="btnExcluirEvento">Excluir</button>` : ''}
+                <button type="submit" class="btn btn-success">${modoEdicao ? 'Modificar' : 'Salvar'}</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      `;
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+      // Preenche campos com dados iniciais se fornecidos
+      document.getElementById('horaInicio').value = extrairHoraMinuto(startDate);
+      document.getElementById('horaFim').value = extrairHoraMinuto(endDate);
+      if (dadosIniciais.nome) document.getElementById('responsavelEvento').value = dadosIniciais.nome;
+      if (dadosIniciais.impressora) document.getElementById('impressoraEvento').value = dadosIniciais.impressora;
+
+      const modalEl = document.getElementById('modalEvento');
+      const modal = new bootstrap.Modal(modalEl);
+      modalEl.addEventListener('shown.bs.modal', () => {
+        document.getElementById('responsavelEvento').focus();
+      });
+      modal.show();
+
+      document.getElementById('formEvento').onsubmit = async function(e) {
+        e.preventDefault();
+        const responsavel = document.getElementById('responsavelEvento').value.trim();
+        const impressora = document.getElementById('impressoraEvento').value;
+        const data = dataEvento.toISOString().slice(0,10);
+        const horaInicio = document.getElementById('horaInicio').value;
+        const horaFim = document.getElementById('horaFim').value;
+        if (!responsavel || !impressora) return;
+
+        const start = `${data}T${horaInicio}:00`;
+        const end = `${data}T${horaFim}:00`;
+
+        // Verifica conflito de agendamento para a mesma impressora (apenas no cadastro, não na edição)
+        if (!modoEdicao) {
+          const snapshot = await db.collection("eventos")
+            .where("impressora", "==", impressora)
+            .where("start", "<", end)
+            .get();
+
+          const conflito = snapshot.docs.some(doc => {
+            const evento = doc.data();
+            return evento.end > start;
+          });
+
+          if (conflito) {
+            alert("Já existe um agendamento para esta impressora neste horário.");
+            return;
+          }
+        }
+
+        onSave({
+          nome: responsavel,
+          start: start,
+          end: end,
+          user: currentUser,
+          impressora: impressora
+        });
         modal.hide();
         setTimeout(() => {
           document.getElementById('modalEvento').remove();
         }, 500);
       };
-    }
-  }
 
-  function formatarHorario(str) {
-    const d = new Date(str);
-    return d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-  }
-
-  auth.onAuthStateChanged(function(user) {
-    if (!user) {
-      // Não autenticado, redireciona para login
-      window.location.href = "index.html";
+      // Botão de excluir (apenas modo edição)
+      if (modoEdicao && onDelete) {
+        document.getElementById('btnExcluirEvento').onclick = function() {
+          onDelete();
+          modal.hide();
+          setTimeout(() => {
+            document.getElementById('modalEvento').remove();
+          }, 500);
+        };
+      }
     }
-  });
-</script>
+
+    function formatarHorario(str) {
+      const d = new Date(str);
+      return d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    }
+
+    auth.onAuthStateChanged(function(user) {
+      if (!user) {
+        // Não autenticado, redireciona para login
+        window.location.href = "index.html";
+      }
+    });
+  </script>
 </body>
 </html>
