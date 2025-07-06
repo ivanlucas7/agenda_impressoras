@@ -6,7 +6,7 @@
   "display": "standalone",
   "background_color": "#198754",
   "theme_color": "#198754",
-  "orientation": "portrait",
+  
   "icons": [
     {
       "src": "manifest-icon-192.maskable.png",
